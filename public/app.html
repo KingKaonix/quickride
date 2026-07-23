@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickRide App</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --primary: #2563eb; --accent: #10b981; --dark: #0f172a; --gray: #64748b; --light: #f8fafc; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: var(--light); min-height: 100vh; }
+    
+    .app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: white; }
+    .header { padding: 1rem; background: var(--primary); color: white; text-align: center; }
+    .header h1 { font-size: 1.25rem; }
+    
+    .tabs { display: flex; border-bottom: 2px solid #e2e8f0; }
+    .tab { flex: 1; padding: 1rem; text-align: center; cursor: pointer; font-weight: 500; color: var(--gray); }
+    .tab.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+    
+    .content { padding: 1rem; }
+    
+    .service-card { background: var(--light); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; cursor: pointer; transition: all 0.2s; }
+    .service-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .service-card h3 { font-size: 1rem; margin-bottom: 0.25rem; }
+    .service-card p { color: var(--gray); font-size: 0.875rem; }
+    .service-card .price { font-weight: 700; color: var(--primary); font-size: 1.1rem; margin-top: 0.5rem; }
+    
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; }
+    .modal.active { display: flex; align-items: flex-end; }
+    .modal-content { background: white; width: 100%; max-width: 480px; margin: 0 auto; border-radius: 16px 16px 0 0; padding: 1.5rem; }
+    .modal h2 { margin-bottom: 1rem; }
+    
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-weight: 500; margin-bottom: 0.5rem; }
+    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-family: inherit; }
+    
+    .btn { display: block; width: 100%; padding: 1rem; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+    .btn:disabled { opacity: 0.5; }
+    .btn-secondary { background: var(--gray); }
+    
+    .booking-list { list-style: none; }
+    .booking-item { padding: 1rem; border-bottom: 1px solid #e2e8f0; }
+    .booking-item h4 { margin-bottom: 0.25rem; }
+    .booking-item p { color: var(--gray); font-size: 0.875rem; }
+    .status { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+    .status-pending { background: #fef3c7; color: #924d1fae
+    .status-cancelled { background: #fee2e2"tabs">
+      div class="""''"></div
+      div class="tab onclick=showTab(bookings'"><>
+    /div">
+      <""/div /div
+    
+    <div class="content" id=">
+      ">/div
+  ""booking-modal
+    </h2form-grouplabel""booking-address" placeholder=<
+      
+        <"booking-notes2 
+     "submitBooking()>"btn btn-secondary" onclick="closeModal()" style="margin-top: 0.5rem">Cancel</button>
+    </div>
+  </div>
+
+  <script>
+    let selectedService = null;
+    
+    async function loadServices() {
+      const res = await fetch('/api/services');
+      const services = await res.json();
+      const list = document.getElementById('services-list');
+      list.innerHTML = services.map(s => `
+        <div class="service-card" onclick="openBooking('${s.id}', '${s.name}', ${s.price})">
+          <h3>${s.name}</h3>
+          <p>${s.description}</p>
+          <div class="price">$${s.price.toFixed(2)}</div>
+        </div>
+      `).join('');
+    }
+    
+    async function loadBookings() {
+      const res = await fetch('/api/bookings');
+      const bookings = await res.json();
+      const list = document.getElementById('book'
+       '"!
+        = bookings.map(bli class=
+          <><<')}<"${b
+        '(id, name,
+      document).textContent = $${price.toFixed(2)}`;.add(
+   '
+      selectedService = submitBooking() { = document.getElementById(;
+      const notes
+      'POSTContent-Type': : JSON.stringify({ (res.ok)
+        show' }
+      document).active''first' : 'last'}-child`).classList.add('active');
+      
+      document.getElementById('services-tab').style.display = tab === 'services' ? 'block' : 'none';
+      document.getElementById('bookings-tab').style.display = tab === 'bookings' ? 'block' : 'none';
+      
+      if (tab === 'bookings') loadBookings();
+    }
+    
+    loadServices();
+  </script>
+</body>
+</html>
