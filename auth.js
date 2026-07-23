@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'quickride-secret-' + Date.now();
 const JWT_EXPIRES = '7d';
@@ -28,13 +29,16 @@ function verifyToken(token) {
   }
 }
 
+function generateResetToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Authentication required' });
   }
-  const token = header.slice(7);
-  const decoded = verifyToken(token);
+  const decoded = verifyToken(header.slice(7));
   if (!decoded) {
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
@@ -58,4 +62,4 @@ function adminOnly(req, res, next) {
   next();
 }
 
-module.exports = { hashPassword, comparePassword, generateToken, verifyToken, authMiddleware, optionalAuth, adminOnly, JWT_SECRET };
+module.exports = { hashPassword, comparePassword, generateToken, verifyToken, generateResetToken, authMiddleware, optionalAuth, adminOnly };

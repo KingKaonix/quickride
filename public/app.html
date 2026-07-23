@@ -2,73 +2,36 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>QuickRide</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root { --blue: #2563eb; --green: #10b981; --dark: #0f172a; --gray: #64748b; --bg: #f8fafc; }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); }
-    .app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: white; }
-    .header { padding: 1rem; background: var(--blue); color: white; display: flex; justify-content: space-between; align-items: center; }
-    .header h1 { font-size: 1.25rem; }
-    .header-btns { display: flex; gap: 0.5rem; }
-    .header-btns button { background: rgba(255,255,255,0.2); border: none; color: white; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.75rem; cursor: pointer; }
-    .tabs { display: flex; border-bottom: 2px solid #e2e8f0; }
-    .tab { flex: 1; padding: 0.75rem; text-align: center; cursor: pointer; font-weight: 500; color: var(--gray); }
-    .tab.active { color: var(--blue); border-bottom: 2px solid var(--blue); }
-    .content { padding: 1rem; }
-    .hidden { display: none; }
-    .card { background: var(--bg); border-radius: 12px; padding: 1rem; margin-bottom: 0.75rem; cursor: pointer; transition: box-shadow 0.2s; }
-    .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    .card h3 { font-size: 1rem; margin-bottom: 0.25rem; }
-    .card p { color: var(--gray); font-size: 0.875rem; }
-    .card .price { font-weight: 700; color: var(--blue); font-size: 1.1rem; margin-top: 0.5rem; }
-    .booking-item { padding: 1rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
-    .booking-item h4 { font-size: 0.875rem; }
-    .booking-item p { color: var(--gray); font-size: 0.75rem; }
-    .status { padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
-    .status-pending { background: #fef3c7; color: #92400e; }
-    .status-cancelled { background: #fee2e2; color: #991b1b; }
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: flex-end; }
-    .modal-overlay.active { display: flex; }
-    .modal { background: white; width: 100%; max-width: 480px; border-radius: 16px 16px 0 0; padding: 1.5rem; }
-    .modal h2 { margin-bottom: 1rem; font-size: 1.25rem; }
-    .form-group { margin-bottom: 1rem; }
-    .form-group label { display: block; font-weight: 500; margin-bottom: 0.5rem; font-size: 0.875rem; }
-    .form-group input, .form-group textarea { width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-family: inherit; font-size: 0.875rem; }
-    .form-group textarea { height: 80px; resize: none; }
-    .btn { width: 100%; padding: 0.875rem; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
-    .btn-primary { background: var(--blue); color: white; }
-    .btn-secondary { background: #e2e8f0; color: var(--dark); margin-top: 0.5rem; }
-    .empty { text-align: center; padding: 3rem 1rem; color: var(--gray); }
-    .auth-wall { text-align: center; padding: 3rem 1rem; }
-    .auth-wall h2 { margin-bottom: 1rem; }
-    .auth-wall p { color: var(--gray); margin-bottom: 1.5rem; }
-    .auth-wall .btn { display: inline-block; width: auto; padding: 0.75rem 2rem; }
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <div class="app">
-    <div class="header">
+  <div id="auth-wall" class="auth-page hidden">
+    <div class="auth-card text-center">
+      <div style="font-size:3rem; margin-bottom:1rem;">🚗</div>
+      <h2 style="margin-bottom:0.5rem;">Welcome to QuickRide</h2>
+      <p class="text-muted mb-2">Sign in to book local services</p>
+      <a href="/login" class="btn btn-primary">Sign In</a>
+      <a href="/register" class="btn btn-secondary mt-1">Create Account</a>
+    </div>
+  </div>
+
+  <div id="app-shell" class="hidden">
+    <div class="app-header">
       <h1>QuickRide</h1>
-      <div class="header-btns">
-        <span id="user-name" style="font-size:0.875rem;opacity:0.9;"></span>
-        <button onclick="logout()">Logout</button>
+      <div class="user-badge">
+        <div class="user-avatar" id="avatar"></div>
+        <button class="btn-logout" onclick="logout()">Sign Out</button>
       </div>
     </div>
+
     <div class="tabs">
-      <div class="tab active" onclick="showTab('services')">Services</div>
-      <div class="tab" onclick="showTab('bookings')">My Bookings</div>
-    </div>
+      <div class="tab active" onclick="showTab('services')">🏠 Services</div>
+      <div class="tab" onclick="showTab('bookings')"></div>
+
     <div class="content">
-      <div id="auth-wall" class="auth-wall hidden">
-        <h2>Sign in to book services</h2>
-        <p>Create an account or sign in to start booking.</p>
-        <a href="/login" class="btn btn-primary">Sign In</a>
-        <br><br>
-        <a href="/register" class="btn btn-secondary" style="display:inline-block;">Create Account</a>
-      </div>
       <div id="services-panel"></div>
       <div id="bookings-panel" class="hidden"></div>
     </div>
@@ -76,23 +39,30 @@
 
   <div class="modal-overlay" id="modal">
     <div class="modal">
+      <div class="modal-handle"></div>
       <h2 id="modal-title">Book Service</h2>
       <div class="form-group">
         <label>Address / Location</label>
-        <input type="text" id="booking-address" placeholder="Where do you need this?">
+        <input type="text" id="booking-address" class="form-input" placeholder="Where do you need this?">
       </div>
       <div class="form-group">
-        <label>Notes (optional)</label>
-        <textarea id="booking-notes" placeholder="Any details..."></textarea>
+        <label>Notes <span class="text-muted">(optional)</span></label>
+        <textarea id="booking-notes" class="form-input" placeholder="Any details..." style="height:80px;resize:none;"></textarea>
       </div>
       <button class="btn btn-primary" onclick="submitBooking()">Confirm Booking</button>
-      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-secondary mt-1" onclick="closeModal()">Cancel</button>
     </div>
-  </div>script>
+  </div>
+
+  <script>
     const API = window.location.origin + '/api';
     let token = localStorage.getItem('token');
     let user = JSON.parse(localStorage.getItem('user') || 'null');
     let selectedServiceId = null;
+
+    const serviceIcons = {
+      rideshare: '🚗', delivery: '📦', tasks: '🔧'
+    };
 
     function getHeaders() {
       const h = { 'Content-Type': 'application/json' };
@@ -103,11 +73,12 @@
     function checkAuth() {
       if (!token || !user) {
         document.getElementById('auth-wall').classList.remove('hidden');
-        document.getElementById('services-panel').innerHTML = '';
+        document.getElementById('app-shell').classList.add('hidden');
         return false;
       }
       document.getElementById('auth-wall').classList.add('hidden');
-      document.getElementById('user-name').textContent = user.name;
+      document.getElementById('app-shell').classList.remove('hidden');
+      document.getElementById('avatar').textContent = user.name.charAt(0).toUpperCase();
       return true;
     }
 
@@ -115,13 +86,15 @@
       const res = await fetch(API + '/services');
       const services = await res.json();
       const panel = document.getElementById('services-panel');
-      panel.innerHTML = services.map(s =>
-        '<div class="card" onclick="openModal(\'' + s.id + '\', \'' + s.name.replace(/'/g, "\\'") + '\')">' +
-        '<h3>' + s.name + '</h3>' +
-        '<p>' + s.description + '</p>' +
-        '<div class="price">$' + s.price.toFixed(2) + '</div>' +
-        '</div>'
-      ).join('');
+      panel.innerHTML = '<h2 style="font-size:1.125rem;font-weight:700;margin-bottom:0.75rem;color:var(--gray-600);">Available Services</h2>' +
+        services.map(s =>
+          '<div class="service-card" onclick="openModal(\'' + s.id + '\', \'' + s.name.replace(/'/g, "\\'") + '\')">' +
+          '<div class="service-icon">' + (serviceIcons[s.category] || '📋') + '</div>' +
+          '<h3>' + s.name + '</h3>' +
+          '<p>' + s.description + '</p>' +
+          '<div class="service-price">$' + s.price.toFixed(2) + ' <span>' + (s.category === 'tasks' ? '/hr' : 'flat') + '</span></div>' +
+          '</div>'
+        ).join('');
     }
 
     async function loadBookings() {
@@ -129,17 +102,26 @@
       if (res.status === 401) { logout(); return; }
       const bookings = await res.json();
       const panel = document.getElementById('bookings-panel');
-      if (bookings.length === 0) { panel.innerHTML = '<div class="empty">No bookings yet.</div>'; return; }
-      panel.innerHTML = bookings.map(b =>
-        '<div class="booking-item">' +
-        '<div><h4>' + b.serviceName + '</h4><p>' + (b.address || 'No address') + ' - $' + b.price.toFixed(2) + '</p></div>' +
-        '<span class="status status-' + b.status + '">' + b.status + '</span>' +
-        '</div>'
-      ).join('');
+      if (bookings.length === 0) {
+        panel.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><h3>No bookings yet</h3><p>Book a service to get started</p></div>';
+        return;
+      }
+      panel.innerHTML = '<h2 style="font-size:1.125rem;font-weight:700;margin-bottom:0.75rem;color:var(--gray-600);">Your Bookings</h2>' +
+        bookings.map(b =>
+          '<div class="booking-card">' +
+          '<div class="booking-header">' +
+          '<div><h4>' + b.serviceName + '</h4><p>' + (b.address || 'No address') + '</p></div>' +
+          '<span class="badge badge-' + b.status + '">' + b.status + '</span>' +
+          '</div>' +
+          '<p style="font-weight:700;color:var(--blue);">$' + b.price.toFixed(2) + (b.category === 'tasks' ? '/hr' : '') + '</p>' +
+          '</div>'
+        ).join('');
     }
 
     function showTab(tab) {
-      document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', (i === 0 && tab === 'services') || (i === 1 && tab === 'bookings')));
+      document.querySelectorAll('.tab').forEach((t, i) => {
+        t.classList.toggle('active', (i === 0 && tab === 'services') || (i === 1 && tab === 'bookings'));
+      });
       document.getElementById('services-panel').classList.toggle('hidden', tab !== 'services');
       document.getElementById('bookings-panel').classList.toggle('hidden', tab !== 'bookings');
       if (tab === 'bookings' && checkAuth()) loadBookings();
@@ -154,7 +136,10 @@
       document.getElementById('modal').classList.add('active');
     }
 
-    function closeModal() { document.getElementById('modal').classList.remove('active'); selectedServiceId = null; }
+    function closeModal() {
+      document.getElementById('modal').classList.remove('active');
+      selectedServiceId = null;
+    }
 
     async function submitBooking() {
       if (!selectedServiceId || !token) return;
