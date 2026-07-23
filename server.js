@@ -13,7 +13,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Load data
 let users = store.load('users');
 let services = store.load('services');
 let bookings = store.load('bookings');
@@ -22,11 +21,22 @@ let resetTokens = store.load('resets') || [];
 // Seed services
 if (services.length === 0) {
   services = [
-    { id: 's1', name: 'Ride - Downtown', category: 'rideshare', price: 5.00, description: 'Quick ride anywhere downtown', provider: 'QuickRide', active: true },
+    { id: 's1', name: 'Ride - Downtown', category: 'rideshare', price: 8.00, description: 'Quick ride anywhere in Price/Helper', provider: 'QuickRide', active: true, pricePerMile: 1.50, minFare: 8.00 },
     { id: 's2', name: 'Local Delivery', category: 'delivery', price: 8.00, description: 'Deliver anything locally', provider: 'QuickRide', active: true },
-    { id: 's3', name: 'Handyman Task', category: 'tasks, active: true },'
-  store.save(admin@quickride.app
-    phone: 
+    { id: 's3', name: 'Handyman Task', category: 'tasks', price: 45.00, description: 'General handyman work per hour', provider: 'QuickRide Pro', active: true },
+    { id: 's4', name: 'House Cleaning', category: 'tasks', price: 35.00, description: 'Professional house cleaning per hour', provider: 'QuickRide Pro', active: true },
+    { id: 's5', name: 'Airport Shuttle - SLC', category: 'rideshare', price: 160.00, description: 'Direct shuttle to Salt Lake City Airport (120 mi)', provider: 'QuickRide Express', active: true, pricePerMile: 0.67, minFare: 160.00 }
+  ];
+  store.save('services', services);
+}
+
+// Seed admin
+if (users.length === 0) {
+  users.push({
+    id: crypto.randomUUID(),
+    email: 'admin@quickride.app',
+    name: 'Admin',
+    phone: '',
     password: hashPassword('admin123'),
     securityQuestion: 'What is your favorite color?',
     securityAnswer: hashPassword('blue'),
@@ -36,28 +46,22 @@ if (services.length === 0) {
   store.save('users', users);
 }
 
-// ============ AUTH ============
+// ---- AUTH ----
 
 app.post('/api/auth/register', (req, res) => {
   const { email, name, password, phone, securityQuestion, securityAnswer } = req.body;
   if (!email || !name || !password) return res.status(400).json({ error: 'Email, name, and password required' });
   if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
   if (users.find(u => u.email === email.toLowerCase())) return res.status(409).json({ error: 'Email already registered' });
-
   const user = {
-    id: crypto.randomUUID(),
-    email: email.toLowerCase(),
-    name,
-    phone: phone || '',
+    id: crypto.randomUUID(), email: email.toLowerCase(), name, phone: phone || '',
     password: hashPassword(password),
     securityQuestion: securityQuestion || 'What is your favorite color?',
     securityAnswer: securityAnswer ? hashPassword(securityAnswer.toLowerCase()) : hashPassword('blue'),
-    role: 'user',
-    created: Date.now()
+    role: 'user', created: Date.now()
   };
   users.push(user);
   store.save('users', users);
-
   const token = generateToken(user);
   const { password: _, securityAnswer: __, ...safe } = user;
   res.status(201).json({ user: safe, token });
@@ -66,12 +70,8 @@ app.post('/api/auth/register', (req, res) => {
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
-
   const user = users.find(u => u.email === email.toLowerCase());
-  if (!user || !comparePassword(password, user.password)) {
-    return res.status(401).json({ error: 'Invalid email or password' });
-  }
-
+  if (!user || !comparePassword(password, user.password)) return res.status(401).json({ error: 'Invalid email or password' });
   const token = generateToken(user);
   const { password: _, securityAnswer: __, ...safe } = user;
   res.json({ user: safe, token });
@@ -84,60 +84,36 @@ app.get('/api/auth/me', authMiddleware, (req, res) => {
   res.json(safe);
 });
 
-// ============ PASSWORD RECOVERY ============
+// ---- PASSWORD RECOVERY ----
 
 app.post('/api/auth/forgot-password', (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email required' });
-
   const user = users.find(u => u.email === email.toLowerCase());
   if (!user) return res.status(404).json({ error: 'No account found with that email' });
-
   const resetToken = generateResetToken();
-  resetTokens.push({
-    token: resetToken,
-    email: user.email,
-    expires: Date.now() + 3600000, // 1 hour
-    used: false
-  });
+  resetTokens.push({ token: resetToken, email: user.email, expires: Date.now() + 3600000, used: false });
   store.save('resets', resetTokens);
-
-  const { securityAnswer: _, password: __, ...safe } = user;
-  res.json({
-    email: user.email,
-    securityQuestion: user.securityQuestion || 'What is your favorite color?',
-    resetToken
-  });
+  res.json({ email: user.email, securityQuestion: user.securityQuestion || 'What is your favorite color?', resetToken });
 });
 
 app.post('/api/auth/reset-password', (req, res) => {
   const { resetToken, email, securityAnswer, newPassword } = req.body;
-  if (!resetToken || !email || !securityAnswer || !newPassword) {
-    return res.status(400).json({ error: 'All fields required' });
-  }
-  if (newPassword.length < 8) {
-    return res.status(400).json({ error: 'Password must be at least 8 characters' });
-  }
-
+  if (!resetToken || !email || !securityAnswer || !newPassword) return res.status(400).json({ error: 'All fields required' });
+  if (newPassword.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
   const reset = resetTokens.find(r => r.token === resetToken && r.email === email.toLowerCase() && !r.used && r.expires > Date.now());
   if (!reset) return res.status(400).json({ error: 'Invalid or expired reset token' });
-
   const user = users.find(u => u.email === email.toLowerCase());
   if (!user) return res.status(404).json({ error: 'User not found' });
-
-  if (!comparePassword(securityAnswer.toLowerCase(), user.securityAnswer)) {
-    return res.status(401).json({ error: 'Incorrect security answer' });
-  }
-
+  if (!comparePassword(securityAnswer.toLowerCase(), user.securityAnswer)) return res.status(401).json({ error: 'Incorrect security answer' });
   user.password = hashPassword(newPassword);
   reset.used = true;
   store.save('users', users);
   store.save('resets', resetTokens);
-
   res.json({ message: 'Password reset successful' });
 });
 
-// ============ SERVICES ============
+// ---- SERVICES ----
 
 app.get('/api/services', (req, res) => {
   const category = req.query.category;
@@ -146,24 +122,16 @@ app.get('/api/services', (req, res) => {
   res.json(list);
 });
 
-// ============ BOOKINGS ============
+// ---- BOOKINGS ----
 
 app.post('/api/bookings', authMiddleware, (req, res) => {
   const { serviceId, address, notes } = req.body;
   const service = services.find(s => s.id === serviceId);
   if (!service) return res.status(404).json({ error: 'Service not found' });
-
   const booking = {
-    id: crypto.randomUUID(),
-    userId: req.user.id,
-    serviceId,
-    serviceName: service.name,
-    category: service.category,
-    price: service.price,
-    address: address || '',
-    notes: notes || '',
-    status: 'pending',
-    created: Date.now()
+    id: crypto.randomUUID(), userId: req.user.id, serviceId, serviceName: service.name,
+    category: service.category, price: service.price, address: address || '', notes: notes || '',
+    status: 'pending', created: Date.now()
   };
   bookings.push(booking);
   store.save('bookings', bookings);
@@ -171,9 +139,7 @@ app.post('/api/bookings', authMiddleware, (req, res) => {
 });
 
 app.get('/api/bookings', authMiddleware, (req, res) => {
-  const userBookings = bookings
-    .filter(b => b.userId === req.user.id)
-    .sort((a, b) => b.created - a.created);
+  const userBookings = bookings.filter(b => b.userId === req.user.id).sort((a, b) => b.created - a.created);
   res.json(userBookings);
 });
 
@@ -185,7 +151,7 @@ app.patch('/api/bookings/:id/cancel', authMiddleware, (req, res) => {
   res.json(booking);
 });
 
-// ============ ADMIN ============
+// ---- ADMIN ----
 
 app.get('/api/admin/stats', authMiddleware, adminOnly, (req, res) => {
   const active = bookings.filter(b => b.status !== 'cancelled');
@@ -193,13 +159,13 @@ app.get('/api/admin/stats', authMiddleware, adminOnly, (req, res) => {
   res.json({ users: users.length, services: services.length, bookings: active.length, revenue: revenue.toFixed(2), commission: (revenue * 0.10).toFixed(2) });
 });
 
-// ============ HEALTH ============
+// ---- HEALTH ----
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', services: services.length, users: users.length, bookings: bookings.length });
 });
 
-// ============ PAGES ============
+// ---- PAGES ----
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/app', (req, res) => res.sendFile(path.join(__dirname, 'public', 'app.html')));
