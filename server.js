@@ -131,6 +131,7 @@ app.post('/api/bookings', authMiddleware, (req, res) => {
   const booking = {
     id: crypto.randomUUID(), userId: req.user.id, serviceId, serviceName: service.name,
     category: service.category, price: service.price, address: address || '', notes: notes || '',
+    deliveryData: req.body.deliveryData || null,
     status: 'pending', created: Date.now()
   };
   bookings.push(booking);

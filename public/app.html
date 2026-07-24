@@ -30,6 +30,7 @@
     <div class="tabs">
       <div class="tab active" onclick="showTab('services')">🏠 Services</div>
       <div class="tab" onclick="showTab('bookings')">📋 My Bookings</div>
+    </div>
 
     <div class="content">
       <div id="services-panel"></div>
@@ -37,6 +38,7 @@
     </div>
   </div>
 
+  <!-- Standard booking modal (rides, handyman, cleaning) -->
   <div class="modal-overlay" id="modal">
     <div class="modal">
       <div class="modal-handle"></div>
@@ -54,15 +56,43 @@
     </div>
   </div>
 
+  <!-- Delivery booking modal -->
+  <div class="modal-overlay" id="delivery-modal">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <h2>📦 Book Delivery</h2>
+      <div class="form-group">
+        <label>Pickup Address</label>
+        <input type="text" id="pickup-address" class="form-input" placeholder="Where to pick up?">
+      </div>
+      <div class="form-group">
+        <label>Delivery Address</label>
+        <input type="text" id="delivery-address" class="form-input" placeholder="Where to deliver?">
+      </div>
+      <div class="form-group">
+        <label>Contact Name</label>
+        <input type="text" id="contact-name" class="form-input" placeholder="Who's receiving?">
+      </div>
+      <div class="form-group">
+        <label>Contact Phone</label>
+        <input type="tel" id="contact-phone" class="form-input" placeholder="(555) 123-4567">
+      </div>
+      <div class="form-group">
+        <label>Special Instructions <span class="text-muted">(optional)</span></label>
+        <textarea id="delivery-notes" class="form-input" placeholder="Fragile? Gate code? Leave at door?" style="height:80px;resize:none;"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="submitDelivery()">Confirm Delivery</button>
+      <button class="btn btn-secondary mt-1" onclick="closeDeliveryModal()">Cancel</button>
+    </div>
+  </div>
+
   <script>
     const API = window.location.origin + '/api';
     let token = localStorage.getItem('token');
     let user = JSON.parse(localStorage.getItem('user') || 'null');
     let selectedServiceId = null;
 
-    const serviceIcons = {
-      rideshare: '🚗', delivery: '📦', tasks: '🔧'
-    };
+    const serviceIcons = { rideshare: '🚗', delivery: '📦', tasks: '🔧' };
 
     function getHeaders() {
       const h = { 'Content-Type': 'application/json' };
@@ -88,7 +118,7 @@
       const panel = document.getElementById('services-panel');
       panel.innerHTML = '<h2 style="font-size:1.125rem;font-weight:700;margin-bottom:0.75rem;color:var(--gray-600);">Available Services</h2>' +
         services.map(s =>
-          '<div class="service-card" onclick="openModal(\'' + s.id + '\', \'' + s.name.replace(/'/g, "\\'") + '\')">' +
+          '<div class="service-card" onclick="openBooking(\'' + s.id + '\', \'' + s.name.replace(/'/g, "\\'") + '\', \'' + s.category + '\')">' +
           '<div class="service-icon">' + (serviceIcons[s.category] || '📋') + '</div>' +
           '<h3>' + s.name + '</h3>' +
           '<p>' + s.description + '</p>' +
@@ -107,15 +137,20 @@
         return;
       }
       panel.innerHTML = '<h2 style="font-size:1.125rem;font-weight:700;margin-bottom:0.75rem;color:var(--gray-600);">Your Bookings</h2>' +
-        bookings.map(b =>
-          '<div class="booking-card">' +
+        bookings.map(b => {
+          let details = '';
+          if (b.category === 'delivery' && b.deliveryData) {
+            details = '<p style="font-size:0.75rem;color:var(--gray-400);margin-top:0.25rem;">From: ' + b.deliveryData.pickup + ' → To: ' + b.deliveryData.delivery + '</p>' +
+              '<p style="font-size:0.75rem;color:var(--gray-400);">Contact: ' + b.deliveryData.contactName + ' (' + b.deliveryData.contactPhone + ')</p>';
+          }
+          return '<div class="booking-card">' +
           '<div class="booking-header">' +
-          '<div><h4>' + b.serviceName + '</h4><p>' + (b.address || 'No address') + '</p></div>' +
+          '<div><h4>' + b.serviceName + '</h4><p>' + (b.address || b.notes || 'No details') + '</p>' + details + '</div>' +
           '<span class="badge badge-' + b.status + '">' + b.status + '</span>' +
           '</div>' +
           '<p style="font-weight:700;color:var(--blue);">$' + b.price.toFixed(2) + (b.category === 'tasks' ? '/hr' : '') + '</p>' +
-          '</div>'
-        ).join('');
+          '</div>';
+        }).join('');
     }
 
     function showTab(tab) {
@@ -127,8 +162,12 @@
       if (tab === 'bookings' && checkAuth()) loadBookings();
     }
 
-    function openModal(serviceId, serviceName) {
+    function openBooking(serviceId, serviceName, category) {
       if (!checkAuth()) return;
+      if (category === 'delivery') {
+        openDeliveryModal(serviceId);
+        return;
+      }
       selectedServiceId = serviceId;
       document.getElementById('modal-title').textContent = 'Book: ' + serviceName;
       document.getElementById('booking-address').value = '';
@@ -136,10 +175,18 @@
       document.getElementById('modal').classList.add('active');
     }
 
-    function closeModal() {
-      document.getElementById('modal').classList.remove('active');
-      selectedServiceId = null;
+    function openDeliveryModal(serviceId) {
+      selectedServiceId = serviceId;
+      document.getElementById('pickup-address').value = '';
+      document.getElementById('delivery-address').value = '';
+      document.getElementById('contact-name').value = user ? user.name : '';
+      document.getElementById('contact-phone').value = user && user.phone ? user.phone : '';
+      document.getElementById('delivery-notes').value = '';
+      document.getElementById('delivery-modal').classList.add('active');
     }
+
+    function closeModal() { document.getElementById('modal').classList.remove('active'); selectedServiceId = null; }
+    function closeDeliveryModal() { document.getElementById('delivery-modal').classList.remove('active'); selectedServiceId = null; }
 
     async function submitBooking() {
       if (!selectedServiceId || !token) return;
@@ -151,6 +198,33 @@
       });
       if (res.status === 401) { logout(); return; }
       closeModal();
+      showTab('bookings');
+    }
+
+    async function submitDelivery() {
+      if (!selectedServiceId || !token) return;
+      const pickup = document.getElementById('pickup-address').value;
+      const delivery = document.getElementById('delivery-address').value;
+      const contactName = document.getElementById('contact-name').value;
+      const contactPhone = document.getElementById('contact-phone').value;
+      const notes = document.getElementById('delivery-notes').value;
+
+      if (!pickup || !delivery || !contactName || !contactPhone) {
+        alert('Please fill in all required fields');
+        return;
+      }
+
+      const res = await fetch(API + '/bookings', {
+        method: 'POST', headers: getHeaders(),
+        body: JSON.stringify({
+          serviceId: selectedServiceId,
+          address: pickup + ' → ' + delivery,
+          notes: notes,
+          deliveryData: { pickup, delivery, contactName, contactPhone }
+        })
+      });
+      if (res.status === 401) { logout(); return; }
+      closeDeliveryModal();
       showTab('bookings');
     }
 
